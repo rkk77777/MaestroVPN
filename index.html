@@ -1896,5 +1896,124 @@
 
         initTelegramRegistrationPool();
     </script>
+    // === MAESTRO VPN: SUPABASE + TELEGRAM PAYMENT REDIRECT ===
+const MAESTRO_CONFIG = {
+  supabaseUrl: 'https://eccfkiuynfuaawilsulu.supabase.co',[span_3](start_span)[span_3](end_span)
+  supabaseKey: 'sb_publishable_kkLntX7_Yl9KBIUiv0PJ0w_muQbKj4X',
+  botUsername: 'Maestro_vpn_official_bot[span_4](start_span)'[span_4](end_span)
+};
+
+function getTgUser() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    return tg.initDataUnsafe.user;
+  }
+  // Запасной профиль для теста в обычном браузере вне Telegram
+  let fallbackId = Number(localStorage.getItem('maestro_test_tg_id'));
+  if (!fallbackId) {
+    fallbackId = Math.floor(100000000 + Math.random() * 900000000);
+    localStorage.setItem('maestro_test_tg_id', String(fallbackId));
+  }
+  return {
+    id: fallbackId,
+    username: 'test_user',
+    first_name: 'Guest'
+  };
+}
+
+async function sbRequest(table, method = 'GET', queryOrBody = null, extraHeaders = {}) {
+  const isGet = method === 'GET';
+  const url = `${MAESTRO_CONFIG.supabaseUrl}/rest/v1/${table}${isGet && queryOrBody ? queryOrBody : ''}`;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'apikey': MAESTRO_CONFIG.supabaseKey,
+      'Authorization': `Bearer ${MAESTRO_CONFIG.supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...extraHeaders
+    },
+    body: !isGet && queryOrBody ? JSON.stringify(queryOrBody) : undefined
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase ${method} ${table} failed (${res.status}): ${errText}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function syncMaestroUser() {
+  const tgUser = getTgUser();
+  const existing = await sbRequest('users', 'GET', `?telegram_id=eq.${tgUser.id}&select=*`);
+
+  if (Array.isArray(existing) && existing.length > 0) {
+    const current = existing[0];
+    const isExpired = current.expires_at ? new Date(current.expires_at) <= new Date() : false;
+    const effectivePaid = Boolean(current.is_paid) && !isExpired;
+    return { ...current, is_paid: effectivePaid };
+  }
+
+  const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+  const referrerId = startParam && /^\d+$/.test(startParam) && Number(startParam) !== tgUser.id
+    ? Number(startParam)
+    : null;
+
+  const newUserPayload = {
+    telegram_id: tgUser.id,
+    username: tgUser.username || null,
+    first_name: tgUser.first_name || null,
+    referrer_id: referrerId,
+    vless_uuid: (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    is_paid: false,
+    expires_at: null,
+    bonus_days: 0
+  };
+
+  const created = await sbRequest('users', 'POST', newUserPayload);
+  return Array.isArray(created) ? created[0] : newUserPayload;
+}
+
+async function startMaestroPayment({ planName, days, amount, method = 'Telegram / СБП' }) {
+  const tgUser = getTgUser();
+
+  // 1. Записываем заявку на оплату со статусом pending (доступ is_paid при этом НЕ включаем)
+  await sbRequest('payments', 'POST', {
+    telegram_id: tgUser.id,
+    plan_name: String(planName || 'Tariff'),
+    days: Number(days || 30),
+    amount: Number(amount || 0),
+    method: String(method || 'Chat'),
+    status: 'pending'
+  });
+
+  // 2. Формируем текст заявки для перехода в чат бота
+  const orderText = [
+    'Здравствуйте! Хочу оплатить подписку Maestro VPN:',
+    `• Telegram ID: ${tgUser.id}`,
+    tgUser.username ? `• Username: @${tgUser.username}` : null,
+    `• Тариф: ${planName} (${days} дн.)`,
+    `• Сумма: ${amount} ₽`,
+    `• Способ: ${method}`
+  ].filter(Boolean).join('\n');
+
+  const tgUrl = `https://t.me/${MAESTRO_CONFIG.botUsername}?text=${encodeURIComponent(orderText)}`;
+  const tg = window.Telegram && window.Telegram.WebApp;
+
+  if (tg && typeof tg.openTelegramLink === 'function') {
+    tg.openTelegramLink(tgUrl);
+  } else {
+    window.open(tgUrl, '_blank', 'noopener,noreferrer');
+  }
+}
+
+window.MaestroBackend = {
+  config: MAESTRO_CONFIG,
+  getTgUser,
+  syncMaestroUser,
+  startMaestroPayment
+};
+
 </body>
 </html>
