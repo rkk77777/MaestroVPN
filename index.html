@@ -166,7 +166,6 @@
             50% { box-shadow: 0 0 42px rgba(255, 255, 255, 0.52), inset 0 0 22px rgba(255, 255, 255, 1); }
         }
 
-        /* Animated White Pearl Button (Replaced Blue) */
         .btn-shimmer-white {
             background: linear-gradient(125deg, #ffffff 0%, #f1f5f9 22%, #cbd5e1 48%, #ffffff 74%, #e2e8f0 100%);
             background-size: 300% 300%;
@@ -272,7 +271,7 @@
             transform: scale(0.94);
         }
 
-        /* Hero Orbital Button (White Animated) */
+        /* Hero Orbital Button */
         .core-hero {
             display: flex;
             flex-direction: column;
@@ -407,7 +406,7 @@
             line-height: 1.45;
         }
 
-        /* Config Terminal (Visible only after payment) */
+        /* Config Terminal */
         .config-terminal {
             background: #101114;
             border: 1px solid rgba(16, 185, 129, 0.45);
@@ -496,7 +495,7 @@
             margin-top: 2px;
         }
 
-        /* Large Locations List (15 nodes including RF White-list bypass) */
+        /* Locations List */
         .locations-scroll {
             max-height: 310px;
             overflow-y: auto;
@@ -944,7 +943,6 @@
                 <span style="font-size: 11px; color: #ffffff;" id="configStateTag">Заблокировано</span>
             </div>
 
-            <!-- Состояние ДО оплаты -->
             <div class="locked-banner" id="configLockedView">
                 <div class="locked-banner-title">Конфигурация ещё не активирована</div>
                 <div class="locked-banner-desc">
@@ -955,7 +953,6 @@
                 </button>
             </div>
 
-            <!-- Состояние ПОСЛЕ оплаты -->
             <div id="configUnlockedView" style="display: none;">
                 <div class="config-terminal">
                     <div class="config-string" id="configStringBox" onclick="copyConfig()"></div>
@@ -974,7 +971,7 @@
             </div>
         </div>
 
-        <!-- Быстрый импорт в конфигураторы (только после оплаты) -->
+        <!-- Быстрый импорт в конфигураторы -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Импорт в конфигуратор (1 клик)</span>
@@ -1008,7 +1005,7 @@
             </div>
         </div>
 
-        <!-- Расширенный список узлов генерации (15 узлов включая обход белых списков РФ) -->
+        <!-- Расширенный список узлов генерации -->
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Узлы конфигурации (15 локаций)</span>
@@ -1227,7 +1224,7 @@
         </div>
     </main>
 
-    <!-- PAGE 3: РЕФЕРАЛЬНАЯ СИСТЕМА (БОНУСЫ В ДНЯХ) -->
+    <!-- PAGE 3: РЕФЕРАЛЬНАЯ СИСТЕМА -->
     <main class="page" id="page-referral">
         <div class="card">
             <div class="card-header">
@@ -1257,7 +1254,7 @@
         <button class="btn-shimmer-white full-btn" onclick="shareRef()">Пригласить друга в Telegram</button>
     </main>
 
-    <!-- PAGE 4: ДРУЗЬЯ (ТОЛЬКО РЕАЛЬНЫЕ РЕФЕРАЛЫ, БЕЗ ФЕЙКОВ) -->
+    <!-- PAGE 4: ДРУЗЬЯ -->
     <main class="page" id="page-friends">
         <div class="card">
             <div class="card-header">
@@ -1334,7 +1331,7 @@
         </div>
     </div>
 
-    <!-- PAYMENT MODAL (SUPABASE READY) -->
+    <!-- PAYMENT MODAL -->
     <div class="modal-overlay" id="payModal" onclick="closePayModal()">
         <div class="modal-card" onclick="event.stopPropagation()">
             <div style="font-size: 18px; font-weight: 700;">Оформление подписки</div>
@@ -1343,7 +1340,7 @@
             <div class="pay-summary-box" id="paySummary"></div>
 
             <button class="btn-shimmer-green full-btn" id="confirmPayBtn" onclick="processSupabasePayment()" style="margin-bottom: 8px;">
-                Перейти к оплате
+                Перейти к оплате в бот
             </button>
             <button class="mini-btn-dark full-btn" onclick="closePayModal()">Отмена</button>
         </div>
@@ -1374,16 +1371,11 @@
     </nav>
 
     <script>
-        /**
-         * =====================================================================
-         * SUPABASE CONFIGURATION (Вставьте свои данные проекта Supabase)
-         * =====================================================================
-         */
-        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        const BOT_USERNAME = 'MaestroVPN_bot';
+        const SUPABASE_URL = 'https://eccfkiuynfuaawilsulu.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_kkLntX7_Yl9KBIUiv0PJ0w_muQbKj4X';
+        const BOT_USERNAME = 'Maestro_vpn_official_bot';
 
-        const isSupabaseConfigured = !SUPABASE_URL.includes('YOUR_PROJECT_ID');
+        const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
         const supabaseClient = (isSupabaseConfigured && window.supabase)
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
             : null;
@@ -1424,6 +1416,12 @@
             if (tg && tg.HapticFeedback) {
                 tg.HapticFeedback.impactOccurred(type);
             }
+        }
+
+        function isSubscriptionActive() {
+            if (!userState.isPaid) return false;
+            if (!userState.expiresAt) return true;
+            return new Date(userState.expiresAt) > new Date();
         }
 
         async function initTelegramRegistrationPool() {
@@ -1476,7 +1474,7 @@
                     if (!existingUser) {
                         const newUserPayload = {
                             telegram_id: userState.telegramId,
-                            username: userState.username,
+                            username: userState.username || null,
                             first_name: userState.firstName,
                             referrer_id: userState.referrerId,
                             vless_uuid: userState.vlessUuid,
@@ -1500,7 +1498,7 @@
                         userState.referrals = refs;
                     }
                 } catch (err) {
-                    console.warn('Supabase sync fallback:', err);
+                    console.warn('Supabase sync error:', err);
                 }
             } else {
                 const saved = localStorage.getItem(`maestro_user_${userState.telegramId}`);
@@ -1562,7 +1560,9 @@
             const importLockLabel = document.getElementById('importLockLabel');
             const chips = document.querySelectorAll('.app-chip');
 
-            if (userState.isPaid) {
+            const activeSub = isSubscriptionActive();
+
+            if (activeSub) {
                 heroBtn.classList.add('unlocked');
                 orbitalWrap.classList.add('unlocked');
                 headerStatus.classList.add('active-sub');
@@ -1604,12 +1604,18 @@
 
                 importLockLabel.textContent = 'После оплаты';
                 chips.forEach(c => c.classList.add('disabled'));
+
+                document.getElementById('accountSubBadge').textContent = 'Не активен';
+                document.getElementById('accountSubBadge').style.color = '#ffffff';
+                document.getElementById('accountSubDetails').textContent = 'Подписка не оформлена. Выберите тариф, чтобы открыть генерацию и импорт конфигураций.';
+                document.getElementById('accountActionBtn').textContent = 'Оформить доступ';
+                document.getElementById('securityCard').style.display = 'none';
             }
         }
 
         function handleHeroAction() {
             haptic('medium');
-            if (!userState.isPaid) {
+            if (!isSubscriptionActive()) {
                 switchTab('premium', document.querySelectorAll('.nav-btn')[1]);
                 showToast('Оформите подписку для получения конфига');
             } else {
@@ -1634,7 +1640,7 @@
             currentSni = sni || 'www.microsoft.com';
             document.getElementById('selectedServerTitle').textContent = `${label} • Reality`;
 
-            if (userState.isPaid) {
+            if (isSubscriptionActive()) {
                 document.getElementById('configStringBox').textContent = buildVlessUri();
                 showToast(`Узел конфига обновлён: ${label}`);
             } else {
@@ -1643,7 +1649,7 @@
         }
 
         function copyConfig() {
-            if (!userState.isPaid) {
+            if (!isSubscriptionActive()) {
                 showToast('Доступно после оплаты подписки');
                 return;
             }
@@ -1654,7 +1660,7 @@
 
         function importToClient(clientName, scheme) {
             haptic('medium');
-            if (!userState.isPaid) {
+            if (!isSubscriptionActive()) {
                 showToast('Импорт в конфигуратор доступен после оплаты');
                 switchTab('premium', document.querySelectorAll('.nav-btn')[1]);
                 return;
@@ -1668,7 +1674,7 @@
         }
 
         function openQrModal() {
-            if (!userState.isPaid) return;
+            if (!isSubscriptionActive()) return;
             haptic('light');
             const uri = encodeURIComponent(buildVlessUri());
             document.getElementById('qrServerLabel').textContent = `${currentLabel} • VLESS Reality`;
@@ -1681,7 +1687,7 @@
         }
 
         function downloadJsonConfig() {
-            if (!userState.isPaid) return;
+            if (!isSubscriptionActive()) return;
             haptic('medium');
             const jsonObj = {
                 remarks: currentTag,
@@ -1748,13 +1754,8 @@
         async function processSupabasePayment() {
             haptic('heavy');
             const btn = document.getElementById('confirmPayBtn');
-            btn.textContent = 'Обработка платежа...';
-
-            const currentExp = userState.expiresAt && new Date(userState.expiresAt) > new Date()
-                ? new Date(userState.expiresAt)
-                : new Date();
-            currentExp.setDate(currentExp.getDate() + pendingOrder.days);
-            const newExpiresIso = currentExp.toISOString();
+            const prevText = btn.textContent;
+            btn.textContent = 'Создаём заявку...';
 
             if (supabaseClient) {
                 try {
@@ -1763,36 +1764,37 @@
                         plan_name: pendingOrder.title,
                         days: pendingOrder.days,
                         amount: pendingOrder.amount,
-                        method: selectedPayMethodCode,
-                        status: 'succeeded'
+                        method: selectedPayMethodLabel,
+                        status: 'pending'
                     }]);
-
-                    await supabaseClient
-                        .from('users')
-                        .update({
-                            is_paid: true,
-                            expires_at: newExpiresIso,
-                            vless_uuid: userState.vlessUuid
-                        })
-                        .eq('telegram_id', userState.telegramId);
                 } catch (err) {
-                    console.error('Supabase payment error:', err);
+                    console.error('Supabase payment insert error:', err);
                 }
             }
 
-            userState.isPaid = true;
-            userState.expiresAt = newExpiresIso;
-            saveLocalUserState();
-            renderUserUI();
+            const orderText = [
+                'Здравствуйте! Хочу оплатить подписку Maestro VPN:',
+                `• Telegram ID: ${userState.telegramId}`,
+                userState.username ? `• Username: @${userState.username}` : null,
+                `• Тариф: ${pendingOrder.title} (${pendingOrder.days} дн.)`,
+                `• Сумма: ${pendingOrder.amount} ₽`,
+                `• Способ: ${selectedPayMethodLabel}`
+            ].filter(Boolean).join('\n');
 
-            btn.textContent = 'Оплачено ✓ Конфиг открыт';
-            showToast('Оплата подтверждена! Конфигурация доступна');
+            const tgUrl = `https://t.me/${BOT_USERNAME}?text=${encodeURIComponent(orderText)}`;
+
+            btn.textContent = 'Открываем бота...';
+            showToast('Заявка записана! Переходим в @Maestro_vpn_official_bot');
 
             setTimeout(() => {
                 closePayModal();
-                btn.textContent = 'Перейти к оплате';
-                switchTab('overview', document.querySelectorAll('.nav-btn')[0]);
-            }, 850);
+                btn.textContent = prevText;
+                if (tg && typeof tg.openTelegramLink === 'function') {
+                    tg.openTelegramLink(tgUrl);
+                } else {
+                    window.open(tgUrl, '_blank', 'noopener,noreferrer');
+                }
+            }, 350);
         }
 
         async function activateBonusDays() {
