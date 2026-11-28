@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maestro VPN</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card: #131824;
+      --border: #222a3d;
+      --text: #f3f6fc;
+      --muted: #8b95ad;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --ok: #22c55e;
+      --warn: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .space-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .space-stars {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .star {
+      position: absolute;
+      background: #ffffff;
+      border-radius: 50%;
+      opacity: 0.25;
+      animation: twinkle var(--dur, 3.2s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(0.85); }
+      50% { opacity: 0.95; transform: scale(1.25); }
+    }
+    .moon-horizon {
+      position: absolute;
+      left: 50%;
+      bottom: -245px;
+      transform: translateX(-50%);
+      width: 540px;
+      height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(
+        ellipse at 50% 18%,
+        rgba(226, 232, 240, 0.26) 0%,
+        rgba(148, 163, 184, 0.16) 32%,
+        rgba(71, 85, 105, 0.08) 62%,
+        rgba(11, 14, 20, 0) 100%
+      );
+      border-top: 1.5px solid rgba(226, 232, 240, 0.28);
+      box-shadow:
+        0 -14px 45px rgba(203, 213, 225, 0.12),
+        inset 0 18px 36px rgba(248, 250, 252, 0.14);
+    }
+    .moon-crater {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.28);
+      border: 1px solid rgba(226, 232, 240, 0.1);
+    }
+    .container { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .title { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0; }
+    .status-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-ok { background: rgba(34, 197, 94, 0.14); color: var(--ok); }
+    .status-off { background: rgba(239, 68, 68, 0.14); color: var(--warn); }
+    .server-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-radius: 12px;
+      background: #0e131d;
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+    .actions { display: flex; gap: 10px; margin-top: 14px; }
+    a.btn {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--accent);
+      color: #fff;
+    }
+    a.btn:hover { background: var(--accent-hover); }
+    .btn-disabled { opacity: 0.45; pointer-events: none; }
+    .tariff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .tariff-item {
+      background: #0e131d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .tariff-name { font-weight: 700; font-size: 14px; }
+    .tariff-price { color: var(--accent); font-weight: 700; margin-top: 4px; font-size: 15px; }
+    .tariff-dev { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="space-bg" aria-hidden="true">
+    <div class="space-stars" id="space-stars"></div>
+    <div class="moon-horizon">
+      <div class="moon-crater" style="width: 34px; height: 14px; top: 34px; left: 215px; transform: rotate(-6deg);"></div>
+      <div class="moon-crater" style="width: 24px; height: 11px; top: 56px; left: 275px; transform: rotate(4deg);"></div>
+      <div class="moon-crater" style="width: 42px; height: 16px; top: 68px; left: 175px; transform: rotate(-10deg);"></div>
+      <div class="moon-crater" style="width: 28px; height: 12px; top: 46px; left: 325px; transform: rotate(8deg);"></div>
+      <div class="moon-crater" style="width: 20px; height: 9px; top: 82px; left: 245px;"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="card">
+      <h1 class="title">Maestro VPN</h1>
+      <p class="sub" id="sub-meta">Проверка подписки...</p>
+      <div id="status-pill" class="status-badge status-off">Подписка неактивна</div>
+
+      <div class="server-box">
+        <div>
+          <div style="font-weight: 600;">🇩🇪 Германия</div>
+          <div class="sub">Персональный доступ по UUID</div>
+        </div>
+        <div style="font-size: 12px; color: var(--ok);">Активен</div>
+      </div>
+
+      <div class="actions">
+        <a id="happ-btn" class="btn btn-disabled" href="#">Перейти в Happ</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight: 700; font-size: 15px;">Тарифы</div>
+      <div class="tariff-grid">
+        <div class="tariff-item">
+          <div class="tariff-name">1 месяц</div>
+          <div class="tariff-price">120 ₽</div>
+          <div class="tariff-dev">4 устройства</div>
+        </div>
+        <div class="tariff-item">
+          <div class="tariff-name">3 месяца</div>
+          <div class="tariff-price">299 ₽</div>
+          <div class="tariff-dev">4 устройства</div>
+        </div>
+        <div class="tariff-item">
+          <div class="tariff-name">6 месяцев</div>
+          <div class="tariff-price">539 ₽</div>
+          <div class="tariff-dev">4 устройства</div>
+        </div>
+        <div class="tariff-item">
+          <div class="tariff-name">12 месяцев</div>
+          <div class="tariff-price">999 ₽</div>
+          <div class="tariff-dev">5 устройств</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://eccfkiuynfuaawilsulu.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_kkLntX7_Yl9KBIUiv0PJ0w_muQbKj4X";
+    const SUB_GATEWAY_URL = "https://s-25411.de21.h1cloud.click";
+
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+      ? tg.initDataUnsafe.user.id
+      : null;
+
+    const subMetaEl = document.getElementById("sub-meta");
+    const statusPillEl = document.getElementById("status-pill");
+    const happBtn = document.getElementById("happ-btn");
+
+    async function sbFetch(path) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    async function loadAppState() {
+      try {
+        let activeSub = null;
+        if (userId) {
+          const rows = await sbFetch(`vpn_subscriptions?user_id=eq.${userId}&limit=1`);
+          if (rows && rows.length > 0) {
+            const r = rows[0];
+            const notExpired = !r.expires_at || new Date(r.expires_at).getTime() > Date.now();
+            if (r.is_active && notExpired && r.sub_token) {
+              activeSub = r;
+            }
+          }
+        }
+
+        if (!activeSub) {
+          statusPillEl.textContent = "Подписка неактивна";
+          statusPillEl.className = "status-badge status-off";
+          subMetaEl.textContent = "Оформите тариф или активируйте код в боте";
+          happBtn.classList.add("btn-disabled");
+          return;
+        }
+
+        const expFormatted = activeSub.expires_at
+          ? new Date(activeSub.expires_at).toLocaleDateString("ru-RU")
+          : "бессрочно";
+        const devLimit = activeSub.devices_limit || 4;
+
+        statusPillEl.textContent = "Подписка активна";
+        statusPillEl.className = "status-badge status-ok";
+        subMetaEl.textContent = `До: ${expFormatted} • Устройств: ${devLimit}`;
+
+        const personalSubUrl = `${SUB_GATEWAY_URL}/sub/${activeSub.sub_token}`;
+        happBtn.href = `happ://add/${encodeURIComponent(personalSubUrl)}`;
+        happBtn.classList.remove("btn-disabled");
+      } catch (err) {
+        statusPillEl.textContent = "Ошибка загрузки";
+        statusPillEl.className = "status-badge status-off";
+        subMetaEl.textContent = "Не удалось получить статус подписки";
+        happBtn.classList.add("btn-disabled");
+      }
+    }
+
+    (function initStars() {
+      const layer = document.getElementById("space-stars");
+      if (!layer) return;
+      const count = 42;
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement("span");
+        s.className = "star";
+        const size = (i % 3 === 0) ? 2.5 : 1.5;
+        s.style.width = size + "px";
+        s.style.height = size + "px";
+        s.style.left = ((i * 37) % 100) + "%";
+        s.style.top = ((i * 53) % 92) + "%";
+        s.style.setProperty("--dur", (2.4 + (i % 5) * 0.65) + "s");
+        s.style.setProperty("--delay", ((i % 7) * 0.4) + "s");
+        layer.appendChild(s);
+      }
+    })();
+
+    loadAppState();
+  </script>
+</body>
+</html>
